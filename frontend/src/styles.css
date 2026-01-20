@@ -1,0 +1,1250 @@
+/* ===================== GLOBAL ===================== */
+* {
+  box-sizing: border-box;
+  font-family: "Inter", sans-serif;
+}
+
+/* Video background */
+.background-video {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -1;
+}
+
+/* Make sure auth-page content is above video */
+.auth-page {
+  position: relative;
+  z-index: 1;
+  color: #ffffff;
+}
+
+body {
+  margin: 0;
+  background: #020617;
+  color: #ffffff;
+}
+
+/* ===================== TOP NAV ===================== */
+.top-nav {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 100%;
+  padding: 16px 36px;
+  display: flex;
+  justify-content: flex-end;
+  z-index: 50;
+}
+
+.top-nav button {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid #1e293b;
+  background: #f2f2f3;
+  color: hsl(195, 8%, 9%);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.top-nav button:hover {
+  background: #edeff2;
+}
+
+/* ===================== AUTH PAGE ===================== */
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  background: linear-gradient(135deg, #020617, #020617, #020617);
+}
+
+/* ===================== LEFT CONTENT ===================== */
+.auth-left {
+  padding: 110px 80px;
+  color: #ffffff;
+}
+
+.auth-title {
+  font-size: 52px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.auth-title span {
+  color: #eaeef0;
+}
+
+.auth-sub {
+  margin-top: 18px;
+  max-width: 520px;
+  color: #e5e7eb;
+}
+
+.auth-about,
+.partners {
+  margin-top: 40px;
+}
+
+.auth-about h3,
+.partners h4 {
+  color: #ffffff;
+}
+
+.auth-about p {
+  color: #cbd5e1;
+}
+
+.partners .partner {
+  background: rgba(125, 134, 183, 0.621);
+  padding: 8px 14px;
+  border-radius: 10px;
+  display: inline-block;
+  margin-right: 10px;
+  margin-top: 10px;
+  color: hsla(180, 70%, 45%, 0.964);
+}
+/* ===================== DEVELOPERS – INTERACTIVE ANIMATED ===================== */
+
+/*.developers {
+  margin-top: 26px;
+}
+
+.developers h4 {
+  margin-bottom: 14px;
+  color: #ffffff;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+}
+
+.developer-wheel {
+  position: relative;
+  height: 150px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.developer {
+  background: rgba(125, 211, 252, 0.1);
+  border: 1px solid rgba(125, 211, 252, 0.35);
+  padding: 12px 18px;
+  border-radius: 16px;
+  color: #7dd3fc;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+
+  backdrop-filter: blur(8px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+
+  animation: devFloat 12s ease-in-out infinite;
+  transition: all 0.35s ease;
+}
+
+.developer:nth-child(1) { animation-delay: 0s; }
+.developer:nth-child(2) { animation-delay: 2.4s; }
+.developer:nth-child(3) { animation-delay: 4.8s; }
+.developer:nth-child(4) { animation-delay: 7.2s; }
+.developer:nth-child(5) { animation-delay: 9.6s; }
+
+.developer:hover {
+  animation-play-state: paused; 
+  transform: translateY(-6px) scale(1.04);
+  background: rgba(125, 211, 252, 0.2);
+  border-color: #7dd3fc;
+  box-shadow:
+    0 10px 28px rgba(125, 211, 252, 0.45),
+    0 0 0 2px rgba(125, 211, 252, 0.15);
+  color: #ffffff;
+}
+
+@keyframes devFloat {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.96);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-50px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-90px) scale(0.96);
+  }
+}
+
+@media (max-width: 768px) {
+  .developer-wheel {
+    height: auto;
+    overflow: visible;
+  }
+
+  .developer {
+    animation: none;
+  }
+}*/
+/* ===================== DEVELOPERS – INTERACTIVE ANIMATED (PREMIUM) ===================== */
+
+.developers {
+  margin-top: 26px;
+}
+
+.developers h4 {
+  margin-bottom: 14px;
+  color: #ffffff;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+}
+
+/* Viewport – shows all 5 */
+.developer-wheel {
+  position: relative;
+  height: 360px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ===================== DEVELOPER CARD (ENHANCED) ===================== */
+.developer {
+  background: linear-gradient(
+    135deg,
+    rgba(125, 211, 252, 0.18),
+    rgba(125, 211, 252, 0.05)
+  );
+  border: 1px solid rgba(125, 211, 252, 0.45);
+  padding: 14px 20px;
+  border-radius: 18px;
+
+  color: #e0f2fe;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+
+  animation: devWheel 20s linear infinite,
+             devGlow 5s ease-in-out infinite;
+
+  transition:
+    transform 0.35s ease,
+    box-shadow 0.35s ease,
+    background 0.35s ease,
+    border-color 0.35s ease;
+}
+
+/* Wheel stagger (UNCHANGED) */
+.developer:nth-child(1) { animation-delay: 0s, 0s; }
+.developer:nth-child(2) { animation-delay: 4s, 0.5s; }
+.developer:nth-child(3) { animation-delay: 8s, 1s; }
+.developer:nth-child(4) { animation-delay: 12s, 1.5s; }
+.developer:nth-child(5) { animation-delay: 16s, 2s; }
+
+/* ===================== HOVER INTERACTION (PREMIUM) ===================== */
+.developer:hover {
+  animation-play-state: paused;
+  transform: scale(1.07);
+
+  background: linear-gradient(
+    135deg,
+    rgba(125, 211, 252, 0.35),
+    rgba(125, 211, 252, 0.15)
+  );
+
+  border-color: #7dd3fc;
+  color: #ffffff;
+
+  box-shadow:
+    0 18px 40px rgba(125, 211, 252, 0.55),
+    0 0 0 2px rgba(125, 211, 252, 0.2);
+}
+
+/* ===================== INFINITE WHEEL (UNCHANGED LOGIC) ===================== */
+@keyframes devWheel {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-360px);
+  }
+}
+
+/* ===================== SOFT PREMIUM GLOW ===================== */
+@keyframes devGlow {
+  0% {
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  }
+  50% {
+    box-shadow:
+      0 14px 36px rgba(0, 0, 0, 0.55),
+      0 0 20px rgba(125, 211, 252, 0.35);
+  }
+  100% {
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  }
+}
+
+/* ===================== MOBILE FRIENDLY (UNCHANGED) ===================== */
+@media (max-width: 768px) {
+  .developer-wheel {
+    height: auto;
+    overflow: visible;
+  }
+
+  .developer {
+    animation: none;
+  }
+}
+
+
+/* ===================== AUTH MODAL ===================== */
+.auth-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+
+.auth-card {
+  width: 360px;
+  background: #0f111b;
+  padding: 34px;
+  border-radius: 22px;
+  border: 1px solid #1e293b;
+}
+
+.auth-card h2 {
+  margin-bottom: 20px;
+  color: #f2f6f9;
+}
+
+.auth-card input {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  border: 1px solid #1e293b;
+  background: #11121f;
+  color: #ffffff;
+}
+
+.auth-card input::placeholder {
+  color: #fdfeff;
+}
+
+.auth-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: none;
+  background: #f6f6f6;
+  color: #7dd3fc;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auth-btn.secondary {
+  margin-top: 10px;
+  background: #f8f7f7;
+  border: 1px solid #0f1318;
+}
+
+.auth-card p {
+  font-size: 14px;
+  text-align: center;
+  margin-top: 14px;
+  color: #f1eeee;
+}
+
+.auth-card span {
+  color: #7dd3fc;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #7dd3fc;
+}
+
+/* ===================== RIGHT IMAGES (UPDATED ✅) ===================== */
+/*.auth-right {
+  padding: 90px 20px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  overflow: hidden;
+}
+
+.image-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.image-column img {
+  width: 100%;
+  height: 130px;
+  object-fit: cover;
+  border-radius: 14px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+}
+
+.down {
+  animation: scrollDown 30s linear infinite;
+}
+
+.up {
+  animation: scrollUp 30s linear infinite;
+}
+
+.image-column:nth-child(3) {
+  animation: scrollDown 36s linear infinite;
+}
+
+@keyframes scrollDown {
+  from { transform: translateY(0); }
+  to { transform: translateY(-60%); }
+}
+
+@keyframes scrollUp {
+  from { transform: translateY(-60%); }
+  to { transform: translateY(0); }
+}*/
+/* =====================================================
+   🔁 SCROLLING IMAGES – TRUE INFINITE LOOP (3 COLUMNS)
+   ===================================================== */
+
+/* 3-column layout (already matches your design) */
+.auth-right {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  overflow: hidden;
+}
+
+/* Each column scrolls infinitely */
+.image-column {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  animation: infiniteScroll 16s linear infinite;
+  will-change: transform;
+}
+
+/* Middle column opposite direction (premium feel) */
+.image-column:nth-child(2) {
+  animation-direction: reverse;
+}
+
+/* Pause motion on hover */
+.image-column:hover {
+  animation-play-state: paused;
+}
+
+/* ===================== IMAGE STYLE ===================== */
+.image-column img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 18px;
+
+  background: linear-gradient(
+    135deg,
+    rgba(125, 211, 252, 0.15),
+    rgba(125, 211, 252, 0.05)
+  );
+
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+
+  transition:
+    transform 0.45s ease,
+    box-shadow 0.45s ease,
+    filter 0.45s ease;
+
+  cursor: pointer;
+}
+
+/* Hover zoom */
+.image-column img:hover {
+  transform: scale(1.08) translateY(-6px);
+  z-index: 5;
+
+  filter: brightness(1.15) saturate(1.2);
+
+  box-shadow:
+    0 18px 40px rgba(125, 211, 252, 0.45),
+    0 0 0 2px rgba(125, 211, 252, 0.18);
+}
+
+/* ===================== TRUE INFINITE LOOP ===================== */
+@keyframes infiniteScroll {
+  from {
+    transform: translateY(0%);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 900px) {
+  .auth-right {
+    grid-template-columns: 1fr;
+  }
+
+  .image-column {
+    animation-duration: 24s;
+  }
+}
+
+/* ===== Typing Animation ===== */
+.typing-text {
+  font-size: 52px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.cursor {
+  display: inline-block;
+  margin-left: 4px;
+  color: #7dd3fc;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+  100% { opacity: 1; }
+}
+/* =====================================================
+   🧪 DASHBOARD – CHEMISTRY AI (UPDATED)
+   ===================================================== */
+
+/* Main dashboard layout */
+.app-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  height: 100vh;
+  background: #020617;
+  color: #ffffff;
+}
+
+/* ===================== SIDEBAR ===================== */
+.sidebar {
+  background: #0f111b;
+  padding: 20px;
+  border-right: 1px solid #1e293b;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #7dd3fc;
+  margin-bottom: 12px;
+}
+
+/* Scrollable history */
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex: 0;
+  overflow-y: auto;
+  background: #11121f;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+
+/* Scrollbar styling */
+.sidebar ul::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar ul::-webkit-scrollbar-thumb {
+  background: #7dd3fc;
+  border-radius: 6px;
+}
+.sidebar ul::-webkit-scrollbar-track {
+  background: #0f111b;
+}
+
+/* History item */
+.sidebar li {
+  background: #0f111b;
+  border: 1px solid #1e293b;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #cbd5e1;
+  transition: 0.25s;
+}
+
+.sidebar li:hover {
+  background: #1e293b;
+  color: #7dd3fc;
+}
+
+.sidebar .empty {
+  color: #94a3b8;
+  text-align: center;
+  font-style: italic;
+}
+
+/* ===================== MAIN PANEL ===================== */
+.main {
+  padding: 30px;
+  overflow-y: auto;
+}
+
+/* ===================== HEADER ===================== */
+.header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+/* Centered title */
+.header h1 {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 28px;
+  font-weight: 800;
+  color: #7dd3fc;
+  margin: 0;
+}
+
+/* Logout button stays right */
+.logout-btn {
+  position: absolute;
+  right: 30px;
+  background: #ef4444;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 10px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  background: #dc2626;
+}
+
+/* ===================== CARDS ===================== */
+.card {
+  background: #11121f;
+  padding: 22px;
+  border-radius: 16px;
+  margin-bottom: 22px;
+  border: 1px solid #1e293b;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+}
+
+.card label {
+  color: #7dd3fc;
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: block;
+}
+
+/* ===================== TEXTAREA ===================== */
+textarea {
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid #1e293b;
+  background: #0f111b;
+  color: #ffffff;
+  font-size: 15px;
+}
+
+textarea::placeholder {
+  color: #94a3b8;
+}
+
+/* ===================== GENERATE BUTTON ===================== */
+#predictBtn {
+  margin-top: 16px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(90deg, #6366f1, #22c55e, #06b6d4);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#predictBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ===================== OUTPUT ===================== */
+.output-box {
+  background: #0f111b;
+  border: 1px solid #1e293b;
+  padding: 16px;
+  border-radius: 12px;
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+
+.answer-list {
+  padding-left: 20px;
+}
+
+.answer-list li {
+  margin-bottom: 8px;
+}
+/* ===================== AUTO SCROLL FOR GENERATED ANSWER ===================== */
+
+/* Output box scroll control */
+.output-box {
+  max-height: 320px;              /* limit height */
+  overflow-y: auto;               /* enable vertical scroll */
+  overflow-x: hidden;
+  padding-right: 10px;            /* space for scrollbar */
+  scroll-behavior: smooth;
+}
+
+/* Scrollbar styling (matches your theme) */
+.output-box::-webkit-scrollbar {
+  width: 8px;
+}
+
+.output-box::-webkit-scrollbar-thumb {
+  background: #7dd3fc;
+  border-radius: 8px;
+}
+
+.output-box::-webkit-scrollbar-track {
+  background: #0f111b;
+}
+
+/* =========================================================
+   🧠 DASHBOARD – CENTER HEADING + LEFT HISTORY (FINAL)
+   ========================================================= */
+
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  height: 100vh;
+  background: #020617;
+  color: #121111;
+}
+
+/* ===================== LEFT HISTORY ===================== */
+.dashboard-sidebar {
+  background: #0f111b;
+  padding: 20px;
+  border-right: 1px solid #1e293b;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-sidebar h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #7dd3fc;
+  margin-bottom: 12px;
+}
+
+/* ===================== HISTORY SCROLL ===================== */
+.history-scroll {
+  flex: 1;
+  overflow-y: auto;
+  background: #11121f;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #1e293b;
+}
+
+/* Scrollbar */
+.history-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.history-scroll::-webkit-scrollbar-thumb {
+  background: #38bdf8;
+  border-radius: 8px;
+}
+
+.history-scroll::-webkit-scrollbar-track {
+  background: #020617;
+}
+
+/* History Item */
+.history-item {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #0f111b;
+  border: 1px solid #1e293b;
+  margin-bottom: 8px;
+  cursor: pointer;
+  color: #cbd5e1;
+  transition: all 0.3s ease;
+}
+
+.history-item:hover {
+  background: #1e293b;
+  color: #7dd3fc;
+}
+
+/* Empty history */
+.empty {
+  text-align: center;
+  color: #94a3b8;
+  font-style: italic;
+  margin-top: 20px;
+}
+/* ===================== MAIN DASHBOARD SCROLL FIX ===================== */
+
+/* Main right panel controls scrolling */
+.dashboard-main {
+  height: 100vh;
+  overflow-y: auto;
+  padding-bottom: 40px;
+}
+
+/* Browser scrollbar (right side) */
+.dashboard-main::-webkit-scrollbar {
+  width: 10px;
+}
+
+.dashboard-main::-webkit-scrollbar-thumb {
+  background: #7dd3fc;
+  border-radius: 10px;
+}
+
+.dashboard-main::-webkit-scrollbar-track {
+  background: #020617;
+}
+
+/* ===================== OUTPUT AUTO EXPAND ===================== */
+
+/* Output grows naturally */
+.output-box {
+  min-height: 120px;
+  max-height: none;          /* ❌ REMOVE LIMIT */
+  overflow: visible;         /* ❌ NO INTERNAL SCROLL */
+  word-wrap: break-word;
+  white-space: normal;
+}
+
+/* Text formatting safety */
+.output-box p,
+.output-box li {
+  line-height: 1.6;
+}
+
+/* If model outputs <pre> or code */
+.output-box pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+/* ===================== HISTORY PANEL SCROLL FIX ===================== */
+
+/* Sidebar takes full height */
+.dashboard-sidebar {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* History list scrolls independently */
+.history-scroll {
+  flex: 1;                     /* fills remaining height */
+  overflow-y: auto;            /* enable scroll */
+  overflow-x: hidden;
+  padding-right: 6px;
+  scroll-behavior: smooth;
+}
+
+/* History scrollbar styling */
+.history-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.history-scroll::-webkit-scrollbar-thumb {
+  background: #7dd3fc;
+  border-radius: 8px;
+}
+
+.history-scroll::-webkit-scrollbar-track {
+  background: #0f111b;
+}
+
+/* History items safety */
+.history-item {
+  word-wrap: break-word;
+  white-space: normal;
+}
+
+/* ===================== MAIN DASHBOARD ===================== */
+.dashboard-main {
+  padding: 28px 32px;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* ===================== CENTER HEADER ===================== */
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.dashboard-header h1 {
+  font-size: 34px;
+  font-weight: 800;
+  color: #131414;
+  margin: 0;
+}
+
+/* 🔵 MODEL NAME (BLUE HIGHLIGHT) */
+.dashboard-header .model-name {
+  display: block;
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #181819;   /* BLUE COLOR */
+  letter-spacing: 0.5px;
+}
+
+/* ===================== LOGOUT BUTTON ===================== */
+.logout-btn {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid #1e293b;
+  background: #0f111b;
+  color: #7dd3fc;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.logout-btn:hover {
+  background: #1e293b;
+}
+
+/* ===================== CARDS ===================== */
+.card {
+  background: #11121f;
+  padding: 22px;
+  border-radius: 16px;
+  margin-bottom: 22px;
+  border: 1px solid #1e293b;
+}
+
+.card label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #1a1b1b;
+}
+
+.card textarea {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #1e293b;
+  background: #0f0f10;
+  color: #ffffff;
+  font-size: 15px;
+  resize: vertical;
+}
+
+/* ===================== BUTTON ===================== */
+.card button {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  background: #1e293b;
+  color: #f0edeb;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.card button:hover {
+  background: #2c3344;
+}
+
+/* ===================== OUTPUT ===================== */
+.output-box {
+  background:   #0f111b;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #f3f6fa;
+  color: #f4f5f6;
+  line-height: 1.6;
+}
+/* ===================== DASHBOARD VIDEO BACKGROUND ===================== */
+.dashboard-wrapper {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background: oklab(30.278% -0.01091 -0.17242 / 0.451); /* 🌤️ cream base */
+}
+
+/* 🎥 Dashboard Video */
+.dashboard-video {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+
+  /* ✨ subtle + natural look */
+  filter: brightness(0.65) saturate(0.9) blur(0.6px);
+  filter: brightness(0.7); 
+
+  z-index: -2;
+}   
+
+/* 🌫️ Soft cream overlay (NOT dark) */
+.dashboard-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(248, 244, 236, 0.72); /* cream glass effect */
+  backdrop-filter: blur(2px);
+  z-index: -1;
+}
+
+/* Ensure dashboard content stays above */
+.dashboard-layout {
+  position: relative;
+  z-index: 1;
+  background: transparent; /* allow video to show */
+}
+
+/* ===================== RESPONSIVE ===================== */
+/*@media (max-width: 900px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-sidebar {
+    display: none;
+  }
+
+  .logout-btn {
+    right: 20px;
+  }
+}*/
+
+
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 900px) {
+  .auth-page {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-right {
+    display: none;
+  }
+
+  .auth-left {
+    padding: 80px 40px;
+  }
+
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-sidebar {
+    display: none;
+  }
+}
+
+/* ===================== RESPONSIVE ===================== */
+/*@media (max-width: 900px) {
+  .app-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .header h1 {
+    font-size: 22px;
+  }
+}*/
+
+/* ================= TEXT SPLIT & TYPING ================= */
+.split-text span {
+  display: inline-block;
+  opacity: 0;
+}
+
+.fly-left {
+  animation: flyLeft 1s ease forwards;
+}
+
+.fly-right {
+  animation: flyRight 1s ease forwards;
+  animation-delay: 0.6s;
+}
+
+.ai-text {
+  color: #7dd3fc;
+  animation: typing 2s steps(10) infinite alternate;
+}
+
+@keyframes flyLeft {
+  from { transform: translateX(-60px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes flyRight {
+  from { transform: translateX(60px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes typing {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
+/* ================= ABOUT FLY IN ================= */
+.fly-in {
+  animation: flyUp 1.2s ease forwards;
+}
+
+@keyframes flyUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ================= SUB TEXT ================= */
+.fade-up {
+  animation: fadeUp 1s ease forwards;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ================= PARTNER WHEEL ================= */
+.partner-wheel {
+  display: flex;
+  gap: 14px;
+  animation: rotateWheel 10s linear infinite;
+}
+
+@keyframes rotateWheel {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(0deg); }
+}
+
+.partner {
+  background: rgba(125, 211, 252, 0.1);
+  padding: 10px 16px;
+  border-radius: 12px;
+  color: #7dd3fc;
+  font-weight: 600;
+}
+
+
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 900px) {
+  .auth-page {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-right {
+    display: none;
+  }
+
+  .auth-left {
+    padding: 80px 40px;
+  }
+}
+.auth-card {
+  background: #f6fafb2c !important;
+}
+/* ===================== SIGNUP BUTTON STYLE ===================== */
+.auth-btn.secondary {
+  background: #ffffff;
+  color: #020617;
+  border: 1px solid #e5e7eb;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+/* Hover → green background, black text */
+.auth-btn.secondary:hover {
+  background: #22c55e;
+  color: #020617;
+  box-shadow: 0 8px 20px rgba(34, 197, 94, 0.35);
+}
+/* ===================== IMAGE ZOOM STYLE ===================== */
+
+/* Base image */
+.image-column img {
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+  cursor: pointer;
+  will-change: transform;
+}
+
+/* Zoom effect on hover */
+.image-column img:hover {
+  transform: scale(1.12);   /* 🔍 zoom level */
+  z-index: 5;
+
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.6),
+    0 0 22px rgba(125, 211, 252, 0.35);
+}
+
+/* Optional: pause column animation while zooming */
+.image-column:hover {
+  animation-play-state: paused;
+}
+
+/* Mobile safety */
+@media (max-width: 768px) {
+  .image-column img:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
