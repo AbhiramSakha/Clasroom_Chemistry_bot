@@ -1,7 +1,5 @@
-import torch
-torch.set_num_threads(1)
 from datetime import datetime
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from auth import router
@@ -9,16 +7,11 @@ from schemas import Query
 from model import generate_answer
 from database import history_col
 
-
-# -------------------------------------------------
-# App initialization
-# -------------------------------------------------
 app = FastAPI()
 
-
-# -------------------------------------------------
-# CORS configuration (NO localhost)
-# -------------------------------------------------
+# -----------------------------
+# CORS (Netlify only)
+# -----------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -29,39 +22,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# -------------------------------------------------
-# Routers
-# -------------------------------------------------
 app.include_router(router)
 
-
-# -------------------------------------------------
-# Root endpoint (fixes Railway error)
-# -------------------------------------------------
+# -----------------------------
+# Root (NEVER touches ML)
+# -----------------------------
 @app.get("/")
 def root():
     return {
-        "message": "Chemistry Bot Backend is running 🚀",
-        "frontend": "https://chemibot.netlify.app",
-        "endpoints": ["/predict", "/history", "/health"]
+        "status": "Chemistry Bot API running",
+        "endpoints": ["/health", "/predict", "/history"]
     }
 
-
-# -------------------------------------------------
-# Health check endpoint
-# -------------------------------------------------
+# -----------------------------
+# Health check (instant)
+# -----------------------------
 @app.get("/health")
 def health():
-    return {"status": "Backend running ✅"}
+    return {"status": "ok"}
 
-
-# -------------------------------------------------
-# Prediction endpoint
-# -------------------------------------------------
+# -----------------------------
+# Predict (ML ONLY here)
+# -----------------------------
 @app.post("/predict")
 def predict(q: Query):
-    output = generate_answer(q.text)
+    try:
+        output = generate_answer(q.text)
+    except Exception as e:
+        raise HTTPException(
+            status_code=503,
+            detail="Model is busy or loading. Please retry."
+        )
 
     history_col.insert_one({
         "input": q.text,
@@ -71,17 +62,13 @@ def predict(q: Query):
 
     return {"output": output}
 
-
-# -------------------------------------------------
-# History endpoint
-# -------------------------------------------------
+# -----------------------------
+# History
+# -----------------------------
 @app.get("/history")
 def history():
     data = list(history_col.find().sort("time", -1).limit(10))
     return [
-        {
-            "input": d.get("input"),
-            "output": d.get("output")
-        }
+        {"input": d["input"], "output": d["output"]}
         for d in data
     ]
