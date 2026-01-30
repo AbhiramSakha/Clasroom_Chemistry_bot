@@ -10,14 +10,31 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/* ================= MONGODB LOCAL CONNECTION ================= */
+/* ================= ENV VARIABLES ================= */
+const MONGODB_URI = process.env.MONGODB_URI;
+const PORT = process.env.PORT || 5000;
+
+if (!MONGODB_URI) {
+  console.error("❌ MONGODB_URI not set in environment variables");
+  process.exit(1);
+}
+
+/* ================= MONGODB CONNECTION ================= */
 mongoose
-  .connect("mongodb://127.0.0.1:27017/chem_ai_auth", {
+  .connect(MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
   })
-  .then(() => console.log("✅ MongoDB Connected (Localhost)"))
-  .catch((err) => console.error("❌ MongoDB Error:", err));
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch((err) => {
+    console.error("❌ MongoDB Connection Error:", err);
+    process.exit(1);
+  });
+
+/* ================= HEALTH CHECK ================= */
+app.get("/", (req, res) => {
+  res.json({ status: "Auth API running" });
+});
 
 /* ================= SIGNUP API ================= */
 app.post("/api/signup", async (req, res) => {
@@ -34,6 +51,7 @@ app.post("/api/signup", async (req, res) => {
 
     res.status(201).json({ message: "Signup successful" });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -54,11 +72,12 @@ app.post("/api/login", async (req, res) => {
 
     res.json({ message: "Login successful" });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
 /* ================= START SERVER ================= */
-app.listen(5000, () => {
-  console.log("🚀 Server running at http://localhost:5000");
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
