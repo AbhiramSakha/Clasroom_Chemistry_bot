@@ -1,45 +1,53 @@
-import os
-from datetime import datetime
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from datetime import datetime
+import os
 
-from auth import router
-from schemas import Query
 from model import generate_answer
 from database import history_col
+from auth import router as auth_router
 
-# ================= APP INIT =================
-app = FastAPI(title="Chemistry AI Backend")
+# =========================
+# APP
+# =========================
+app = FastAPI(title="Classroom Chemistry Bot API")
 
-# ================= CORS =================
-# Allow Netlify frontend + local dev (optional)
+# =========================
+# CORS (Netlify frontend)
+# =========================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://chemibot.netlify.app",
-        "https://chemibot.netlify.app/",
-        "https://clasroomchemistrybot-production.up.railway.app",   # optional (local dev)
+        "https://clasroomchemistrybot.netlify.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ================= ROUTERS =================
-app.include_router(router)
+# =========================
+# ROUTERS
+# =========================
+app.include_router(auth_router)
 
-# ================= ROOT (IMPORTANT) =================
-@app.get("/")
-def root():
-    return {"status": "Chemistry AI Backend is running"}
+# =========================
+# SCHEMAS
+# =========================
+class Query(BaseModel):
+    text: str
 
-# ================= HEALTH CHECK (REQUIRED BY RAILWAY) =================
+# =========================
+# HEALTH CHECK (Railway)
+# =========================
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
-# ================= MODEL API =================
+# =========================
+# PREDICT (POST ONLY)
+# =========================
 @app.post("/predict")
 def predict(q: Query):
     output = generate_answer(q.text)
@@ -52,14 +60,13 @@ def predict(q: Query):
 
     return {"output": output}
 
-# ================= HISTORY API =================
+# =========================
+# HISTORY
+# =========================
 @app.get("/history")
 def history():
     data = list(history_col.find().sort("time", -1).limit(10))
     return [
-        {
-            "input": d.get("input"),
-            "output": d.get("output")
-        }
+        {"input": d["input"], "output": d["output"]}
         for d in data
     ]
