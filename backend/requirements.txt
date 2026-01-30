@@ -4,7 +4,16 @@ pymongo
 python-jose
 passlib[bcrypt]
 python-multipart
-transformers
-torch
-peft
 werkzeug
+requests
+numpy
+
+# CPU-only PyTorch
+torch==2.1.2+cpu
+torchvision==0.16.2+cpu
+torchaudio==2.1.2+cpu
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+transformers==4.36.2
+peft==0.7.1
+sentencepiece
