@@ -1,33 +1,30 @@
-import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from datetime import datetime
-
 from auth import router
 from schemas import Query
 from model import generate_answer
 from database import history_col
+from datetime import datetime
 
 app = FastAPI()
 
-# ✅ CORS – allow Netlify frontend
+# ================= CORS =================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://chemibot.netlify.app",
-        "https://clasroomchemistrybot-production.up.railway.app"
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],  # Netlify + future domains
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# ================= ROUTERS =================
 app.include_router(router)
 
-@app.get("/")
-def root():
-    return {"status": "Chemistry AI Backend Running"}
+# ================= HEALTH CHECK (REQUIRED FOR RAILWAY) =================
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
+# ================= PREDICT =================
 @app.post("/predict")
 def predict(q: Query):
     output = generate_answer(q.text)
@@ -38,6 +35,7 @@ def predict(q: Query):
     })
     return {"output": output}
 
+# ================= HISTORY =================
 @app.get("/history")
 def history():
     data = list(history_col.find().sort("time", -1).limit(10))
