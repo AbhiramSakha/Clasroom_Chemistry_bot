@@ -1,3 +1,5 @@
+import torch
+torch.set_num_threads(1)
 from datetime import datetime
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
