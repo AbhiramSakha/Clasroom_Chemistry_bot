@@ -3,32 +3,36 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime
 
-from model import generate_answer
 from database import history_col
 from auth import router as auth_router
 
 app = FastAPI(title="Classroom Chemistry Bot API")
 
-# CORS
+# ================= CORS =================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # safe for now
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 app.include_router(auth_router)
 
-
+# ================= SCHEMA =================
 class Query(BaseModel):
     text: str
 
+# ================= HEALTH (MUST BE FIRST & LIGHT) =================
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
+# ================= PREDICT =================
 @app.post("/predict")
 def predict(q: Query):
+    # 🚨 IMPORT MODEL ONLY WHEN REQUEST COMES
+    from model import generate_answer
+
     output = generate_answer(q.text)
 
     history_col.insert_one({
@@ -39,7 +43,7 @@ def predict(q: Query):
 
     return {"output": output}
 
-
+# ================= HISTORY =================
 @app.get("/history")
 def history():
     data = list(history_col.find().sort("time", -1).limit(10))
