@@ -1,18 +1,17 @@
 import torch
+import threading
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from peft import PeftModel
 
-# ----------------------------
-# Performance safety (Railway)
-# ----------------------------
+# -----------------------------
+# Railway safety limits
+# -----------------------------
 torch.set_num_threads(1)
+lock = threading.Lock()
 
 BASE_MODEL = "google/flan-t5-base"
 ADAPTER_PATH = "MyFinetunedModel"
 
-# ----------------------------
-# Lazy-loaded globals
-# ----------------------------
 tokenizer = None
 model = None
 
@@ -32,25 +31,27 @@ def load_model():
         model.eval()
 
 
-def generate_answer(text: str):
-    load_model()
+def generate_answer(text: str) -> str:
+    with lock:  # 🚨 prevents parallel inference (CRITICAL)
+        load_model()
 
-    inputs = tokenizer(
-        text,
-        return_tensors="pt",
-        truncation=True
-    )
-
-    with torch.no_grad():
-        outputs = model.generate(
-            **inputs,
-            max_length=128,
-            repetition_penalty=1.3,
-            no_repeat_ngram_size=3
+        inputs = tokenizer(
+            text,
+            return_tensors="pt",
+            truncation=True,
+            max_length=256
         )
 
-    return tokenizer.decode(
-        outputs[0],
-        skip_special_tokens=True,
-        clean_up_tokenization_spaces=True
-    )
+        with torch.no_grad():
+            outputs = model.generate(
+                **inputs,
+                max_new_tokens=128,
+                repetition_penalty=1.3,
+                no_repeat_ngram_size=3
+            )
+
+        return tokenizer.decode(
+            outputs[0],
+            skip_special_tokens=True,
+            clean_up_tokenization_spaces=True
+        )
