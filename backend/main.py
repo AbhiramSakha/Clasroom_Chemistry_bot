@@ -1,57 +1,63 @@
-from datetime import datetime
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from datetime import datetime
+import os
 
-from auth import router
-from schemas import Query
-from model import generate_answer
-from database import history_col
-
+# -------------------------------------------------
+# IMPORTANT: create app FIRST (no heavy imports yet)
+# -------------------------------------------------
 app = FastAPI()
 
-# -----------------------------
-# CORS (Netlify only)
-# -----------------------------
+# -------------------------------------------------
+# CORS (Netlify frontend + Railway backend)
+# -------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://chemibot.netlify.app",
-        "https://clasroomchemistrybot-production.up.railway.app"
+        "https://classroomchemistrybot-production.up.railway.app"
     ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(router)
-
-# -----------------------------
-# Root (NEVER touches ML)
-# -----------------------------
+# -------------------------------------------------
+# FAST endpoints (Railway health checks)
+# -------------------------------------------------
 @app.get("/")
 def root():
     return {
         "status": "Chemistry Bot API running",
-        "endpoints": ["/health", "/predict", "/history"]
+        "message": "Backend is alive"
     }
 
-# -----------------------------
-# Health check (instant)
-# -----------------------------
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
-# -----------------------------
-# Predict (ML ONLY here)
-# -----------------------------
+# -------------------------------------------------
+# Lazy imports (ONLY after startup is complete)
+# -------------------------------------------------
+from auth import router
+from schemas import Query
+from database import history_col
+from model import generate_answer
+
+app.include_router(router)
+
+# -------------------------------------------------
+# Prediction endpoint (ML runs ONLY here)
+# -------------------------------------------------
 @app.post("/predict")
 def predict(q: Query):
     try:
         output = generate_answer(q.text)
-    except Exception as e:
+    except Exception:
+        # Railway-safe error instead of timeout
         raise HTTPException(
             status_code=503,
-            detail="Model is busy or loading. Please retry."
+            detail="Model is loading or busy. Please try again in a moment."
         )
 
     history_col.insert_one({
@@ -62,9 +68,9 @@ def predict(q: Query):
 
     return {"output": output}
 
-# -----------------------------
-# History
-# -----------------------------
+# -------------------------------------------------
+# History endpoint
+# -------------------------------------------------
 @app.get("/history")
 def history():
     data = list(history_col.find().sort("time", -1).limit(10))
