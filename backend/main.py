@@ -23,12 +23,9 @@ app.include_router(auth_router)
 class Query(BaseModel):
     text: str
 
-
-# 🚑 HEALTHCHECK — MUST BE INSTANT
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
 
 @app.post("/predict")
 def predict(q: Query):
