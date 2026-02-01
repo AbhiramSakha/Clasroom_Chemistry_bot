@@ -4,35 +4,51 @@ from pydantic import BaseModel
 from datetime import datetime
 import os
 
-# ------------------ APP ------------------
-app = FastAPI(title="Classroom Chemistry Bot")
+# ================== APP ==================
+app = FastAPI(title="Classroom Chemistry Bot API")
 
-# ------------------ CORS ------------------
+# ================== CORS ==================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://chemibot.netlify.app"],  # Netlify + local
+    allow_origins=[
+        "https://chemibot.netlify.app",   # Netlify frontend
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ------------------ HEALTH ------------------
+# ================== ROOT (IMPORTANT) ==================
+@app.get("/")
+def root():
+    return {
+        "message": "Classroom Chemistry Bot API is running 🚀",
+        "endpoints": {
+            "health": "/health",
+            "predict": "POST /predict",
+            "history": "GET /history",
+            "docs": "/docs"
+        }
+    }
+
+# ================== HEALTH ==================
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
-# ------------------ REQUEST MODEL ------------------
+# ================== REQUEST SCHEMA ==================
 class Query(BaseModel):
     text: str
 
-# ------------------ LAZY GLOBALS ------------------
+# ================== GLOBAL LAZY OBJECTS ==================
 _model = None
 _tokenizer = None
 _history_col = None
 
-# ------------------ LOAD MODEL (LAZY) ------------------
+# ================== LOAD MODEL (LAZY) ==================
 def load_model():
     global _model, _tokenizer
+
     if _model is None:
         import torch
         from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
@@ -46,18 +62,22 @@ def load_model():
         _model = PeftModel.from_pretrained(base_model, ADAPTER_PATH)
         _model.eval()
 
-# ------------------ LOAD DB (LAZY) ------------------
+# ================== LOAD DATABASE (LAZY) ==================
 def load_db():
     global _history_col
+
     if _history_col is None:
         from pymongo import MongoClient
 
-        mongo_url = os.environ.get("MONGODB_URL")
+        mongo_url = os.environ.get("MONGO_URI")
+        if not mongo_url:
+            raise RuntimeError("MONGO_URI environment variable not set")
+
         client = MongoClient(mongo_url)
         db = client["chem_ai"]
         _history_col = db["history"]
 
-# ------------------ PREDICT ------------------
+# ================== PREDICT ==================
 @app.post("/predict")
 def predict(q: Query):
     load_model()
@@ -85,9 +105,18 @@ def predict(q: Query):
 
     return {"output": answer}
 
-# ------------------ HISTORY ------------------
+# ================== HISTORY ==================
 @app.get("/history")
 def history():
     load_db()
-    data = list(_history_col.find().sort("time", -1).limit(10))
-    return [{"input": d["input"], "output": d["output"]} for d in data]
+
+    data = list(
+        _history_col.find()
+        .sort("time", -1)
+        .limit(10)
+    )
+
+    return [
+        {"input": d["input"], "output": d["output"]}
+        for d in data
+    ]
