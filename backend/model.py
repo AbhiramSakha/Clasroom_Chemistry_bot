@@ -5,29 +5,33 @@ from peft import PeftModel
 BASE_MODEL = "google/flan-t5-base"
 ADAPTER_PATH = "MyFinetunedModel"
 
-tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
+_tokenizer = None
+_model = None
 
-base_model = AutoModelForSeq2SeqLM.from_pretrained(
-    BASE_MODEL,
-    torch_dtype=torch.float32,
-    device_map="cpu"
-)
 
-model = PeftModel.from_pretrained(
-    base_model,
-    ADAPTER_PATH,
-    local_files_only=True
-)
+def _load():
+    global _tokenizer, _model
 
-model.eval()
+    if _model is None:
+        _tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
+        base = AutoModelForSeq2SeqLM.from_pretrained(
+            BASE_MODEL,
+            low_cpu_mem_usage=True
+        )
+        _model = PeftModel.from_pretrained(base, ADAPTER_PATH)
+        _model.eval()
 
-def generate_answer(text: str):
-    inputs = tokenizer(text, return_tensors="pt", truncation=True)
+
+def generate_answer(text: str) -> str:
+    _load()
+
+    inputs = _tokenizer(text, return_tensors="pt", truncation=True)
     with torch.no_grad():
-        outputs = model.generate(
+        outputs = _model.generate(
             **inputs,
             max_length=128,
-            no_repeat_ngram_size=3,
-            repetition_penalty=1.3
+            repetition_penalty=1.3,
+            no_repeat_ngram_size=3
         )
-    return tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+    return _tokenizer.decode(outputs[0], skip_special_tokens=True)
