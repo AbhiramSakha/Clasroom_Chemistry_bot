@@ -4,10 +4,10 @@ from pydantic import BaseModel
 from datetime import datetime
 import os
 
-# ================== APP ==================
+# ================= APP =================
 app = FastAPI(title="Classroom Chemistry Bot API")
 
-# ================== CORS ==================
+# ================= CORS =================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -18,29 +18,34 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ================== ROOT ==================
+# ================= ROOT =================
 @app.get("/")
 def root():
     return {
         "message": "Classroom Chemistry Bot API is running",
-        "status": "ok"
+        "endpoints": {
+            "health": "/health",
+            "warmup": "POST /warmup",
+            "predict": "POST /predict",
+            "history": "GET /history"
+        }
     }
 
-# ================== HEALTH ==================
+# ================= HEALTH =================
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
-# ================== REQUEST SCHEMA ==================
+# ================= REQUEST SCHEMA =================
 class Query(BaseModel):
     text: str
 
-# ================== GLOBAL LAZY OBJECTS ==================
+# ================= GLOBAL LAZY OBJECTS =================
 _model = None
 _tokenizer = None
 _history_col = None
 
-# ================== LOAD MODEL (LAZY) ==================
+# ================= LOAD MODEL (LAZY) =================
 def load_model():
     global _model, _tokenizer
 
@@ -57,35 +62,38 @@ def load_model():
         _model = PeftModel.from_pretrained(base_model, ADAPTER_PATH)
         _model.eval()
 
-# ================== LOAD DATABASE (TLS SAFE) ==================
+# ================= LOAD DATABASE =================
 def load_db():
     global _history_col
 
     if _history_col is None:
         from pymongo import MongoClient
 
-        mongo_url = os.environ.get("MONGO_URI")
+        mongo_url = os.environ.get("MONGODB_URL")
         if not mongo_url:
-            raise RuntimeError("MONGO_URI environment variable not set")
+            raise RuntimeError("MONGODB_URL not set")
 
-        try:
-            client = MongoClient(
-                mongo_url,
-                tls=True,
-                tlsAllowInvalidCertificates=True,
-                serverSelectionTimeoutMS=30000
-            )
-            db = client["chem_ai"]
-            _history_col = db["history"]
+        client = MongoClient(
+            mongo_url,
+            tls=True,
+            tlsAllowInvalidCertificates=True,
+            serverSelectionTimeoutMS=30000
+        )
 
-            # force connection test
-            client.admin.command("ping")
+        client.admin.command("ping")
+        db = client["chem_ai"]
+        _history_col = db["history"]
 
-        except Exception as e:
-            print("❌ MongoDB connection failed:", str(e))
-            raise RuntimeError("Database connection failed")
+# ================= WARMUP =================
+@app.post("/warmup")
+def warmup():
+    try:
+        load_model()
+        return {"status": "model loaded"}
+    except Exception as e:
+        return {"status": "failed", "error": str(e)}
 
-# ================== PREDICT ==================
+# ================= PREDICT =================
 @app.post("/predict")
 def predict(q: Query):
     try:
@@ -115,10 +123,9 @@ def predict(q: Query):
         return {"output": answer}
 
     except Exception as e:
-        print("❌ Predict error:", str(e))
         raise HTTPException(status_code=500, detail="Prediction failed")
 
-# ================== HISTORY ==================
+# ================= HISTORY =================
 @app.get("/history")
 def history():
     try:
@@ -135,6 +142,5 @@ def history():
             for d in data
         ]
 
-    except Exception as e:
-        print("❌ History error:", str(e))
+    except Exception:
         raise HTTPException(status_code=500, detail="History fetch failed")
