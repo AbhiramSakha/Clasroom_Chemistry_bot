@@ -64,9 +64,9 @@ def load_db():
     if _history_col is None:
         from pymongo import MongoClient
 
-        mongo_url = os.environ.get("MONGODB_URL")
+        mongo_url = os.environ.get("MONGO_URI")
         if not mongo_url:
-            raise RuntimeError("MONGODB_URL environment variable not set")
+            raise RuntimeError("MONGO_URI environment variable not set")
 
         try:
             client = MongoClient(
