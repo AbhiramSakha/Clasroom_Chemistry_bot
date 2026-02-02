@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime
@@ -11,24 +11,19 @@ app = FastAPI(title="Classroom Chemistry Bot API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://chemibot.netlify.app",   # Netlify frontend
+        "https://chemibot.netlify.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ================== ROOT (IMPORTANT) ==================
+# ================== ROOT ==================
 @app.get("/")
 def root():
     return {
-        "message": "Classroom Chemistry Bot API is running 🚀",
-        "endpoints": {
-            "health": "/health",
-            "predict": "POST /predict",
-            "history": "GET /history",
-            "docs": "/docs"
-        }
+        "message": "Classroom Chemistry Bot API is running",
+        "status": "ok"
     }
 
 # ================== HEALTH ==================
@@ -62,61 +57,84 @@ def load_model():
         _model = PeftModel.from_pretrained(base_model, ADAPTER_PATH)
         _model.eval()
 
-# ================== LOAD DATABASE (LAZY) ==================
+# ================== LOAD DATABASE (TLS SAFE) ==================
 def load_db():
     global _history_col
 
     if _history_col is None:
         from pymongo import MongoClient
 
-        mongo_url = os.environ.get("MONGO_URI")
+        mongo_url = os.environ.get("MONGODB_URL")
         if not mongo_url:
-            raise RuntimeError("MONGO_URI environment variable not set")
+            raise RuntimeError("MONGODB_URL environment variable not set")
 
-        client = MongoClient(mongo_url)
-        db = client["chem_ai"]
-        _history_col = db["history"]
+        try:
+            client = MongoClient(
+                mongo_url,
+                tls=True,
+                tlsAllowInvalidCertificates=True,
+                serverSelectionTimeoutMS=30000
+            )
+            db = client["chem_ai"]
+            _history_col = db["history"]
+
+            # force connection test
+            client.admin.command("ping")
+
+        except Exception as e:
+            print("❌ MongoDB connection failed:", str(e))
+            raise RuntimeError("Database connection failed")
 
 # ================== PREDICT ==================
 @app.post("/predict")
 def predict(q: Query):
-    load_model()
-    load_db()
+    try:
+        load_model()
+        load_db()
 
-    import torch
+        import torch
 
-    inputs = _tokenizer(q.text, return_tensors="pt", truncation=True)
+        inputs = _tokenizer(q.text, return_tensors="pt", truncation=True)
 
-    with torch.no_grad():
-        outputs = _model.generate(
-            **inputs,
-            max_length=128,
-            repetition_penalty=1.3,
-            no_repeat_ngram_size=3
-        )
+        with torch.no_grad():
+            outputs = _model.generate(
+                **inputs,
+                max_length=128,
+                repetition_penalty=1.3,
+                no_repeat_ngram_size=3
+            )
 
-    answer = _tokenizer.decode(outputs[0], skip_special_tokens=True)
+        answer = _tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-    _history_col.insert_one({
-        "input": q.text,
-        "output": answer,
-        "time": datetime.utcnow()
-    })
+        _history_col.insert_one({
+            "input": q.text,
+            "output": answer,
+            "time": datetime.utcnow()
+        })
 
-    return {"output": answer}
+        return {"output": answer}
+
+    except Exception as e:
+        print("❌ Predict error:", str(e))
+        raise HTTPException(status_code=500, detail="Prediction failed")
 
 # ================== HISTORY ==================
 @app.get("/history")
 def history():
-    load_db()
+    try:
+        load_db()
 
-    data = list(
-        _history_col.find()
-        .sort("time", -1)
-        .limit(10)
-    )
+        data = list(
+            _history_col.find()
+            .sort("time", -1)
+            .limit(10)
+        )
 
-    return [
-        {"input": d["input"], "output": d["output"]}
-        for d in data
-    ]
+        return [
+            {"input": d["input"], "output": d["output"]}
+            for d in data
+        ]
+
+    except Exception as e:
+        print("❌ History error:", str(e))
+        raise HTTPException(status_code=500, detail="History fetch failed")
