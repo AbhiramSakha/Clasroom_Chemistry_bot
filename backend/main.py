@@ -6,40 +6,36 @@ import os
 
 app = FastAPI(title="Classroom Chemistry Bot")
 
-# ------------------ CORS (FIXED) ------------------
+# ---------------- CORS ----------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://chemibot.netlify.app",
-        "http://localhost:5173",
-        "*"
+        "http://localhost:5173"
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ------------------ HEALTH ------------------
+# ---------------- HEALTH ----------------
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
-# ------------------ REQUEST MODEL ------------------
+# ---------------- REQUEST MODEL ----------------
 class Query(BaseModel):
     text: str
 
-# ------------------ GLOBALS ------------------
-_model = None
-_tokenizer = None
-_history_col = None
+# ---------------- GLOBALS ----------------
+model = None
+tokenizer = None
+history_col = None
 
-# ------------------ LOAD MODEL (SAFE) ------------------
+# ---------------- LOAD MODEL (LAZY) ----------------
 def load_model():
-    global _model, _tokenizer
-    if _model is not None:
-        return
-
-    try:
+    global model, tokenizer
+    if model is None:
         import torch
         from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
         from peft import PeftModel
@@ -47,87 +43,70 @@ def load_model():
         BASE_MODEL = "google/flan-t5-base"
         ADAPTER_PATH = "MyFinetunedModel"
 
-        _tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
+        tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
         base_model = AutoModelForSeq2SeqLM.from_pretrained(BASE_MODEL)
-        _model = PeftModel.from_pretrained(base_model, ADAPTER_PATH)
-        _model.eval()
+        model = PeftModel.from_pretrained(base_model, ADAPTER_PATH)
+        model.eval()
 
-    except Exception as e:
-        print("❌ Model load failed:", e)
-        raise HTTPException(status_code=500, detail="Model loading failed")
-
-# ------------------ LOAD DB (TLS FIX) ------------------
+# ---------------- LOAD DATABASE ----------------
 def load_db():
-    global _history_col
-    if _history_col is not None:
-        return
-
-    try:
+    global history_col
+    if history_col is None:
         from pymongo import MongoClient
 
         mongo_url = os.getenv("MONGODB_URL")
         if not mongo_url:
-            print("⚠️ MongoDB disabled (no URL)")
-            return
+            raise RuntimeError("MONGODB_URL not set")
 
         client = MongoClient(
             mongo_url,
             tls=True,
-            tlsAllowInvalidCertificates=True,
             serverSelectionTimeoutMS=5000
         )
-
         db = client["chem_ai"]
-        _history_col = db["history"]
+        history_col = db["history"]
 
-    except Exception as e:
-        print("❌ MongoDB connection failed:", e)
-        _history_col = None
-
-# ------------------ PREDICT ------------------
+# ---------------- PREDICT ----------------
 @app.post("/predict")
 def predict(q: Query):
-    load_model()
-    load_db()
+    try:
+        load_model()
+        load_db()
 
-    import torch
+        import torch
 
-    inputs = _tokenizer(q.text, return_tensors="pt", truncation=True)
+        inputs = tokenizer(q.text, return_tensors="pt", truncation=True)
 
-    with torch.no_grad():
-        outputs = _model.generate(
-            **inputs,
-            max_length=128,
-            repetition_penalty=1.3,
-            no_repeat_ngram_size=3
-        )
+        with torch.no_grad():
+            outputs = model.generate(
+                **inputs,
+                max_length=128,
+                repetition_penalty=1.2,
+                no_repeat_ngram_size=3
+            )
 
-    answer = _tokenizer.decode(outputs[0], skip_special_tokens=True)
+        answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-    # Save history ONLY if DB is available
-    if _history_col:
-        try:
-            _history_col.insert_one({
-                "input": q.text,
-                "output": answer,
-                "time": datetime.utcnow()
-            })
-        except Exception as e:
-            print("⚠️ History save failed:", e)
+        history_col.insert_one({
+            "input": q.text,
+            "output": answer,
+            "time": datetime.utcnow()
+        })
 
-    return {"output": answer}
+        return {"output": answer}
 
-# ------------------ HISTORY ------------------
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ---------------- HISTORY ----------------
 @app.get("/history")
 def history():
-    load_db()
-
-    if not _history_col:
-        return []
-
     try:
-        data = list(_history_col.find().sort("time", -1).limit(10))
-        return [{"input": d["input"], "output": d["output"]} for d in data]
-    except Exception as e:
-        print("⚠️ History fetch failed:", e)
+        load_db()
+        docs = list(history_col.find().sort("time", -1).limit(10))
+        return [
+            {"input": d["input"], "output": d["output"]}
+            for d in docs
+        ]
+    except Exception:
         return []
