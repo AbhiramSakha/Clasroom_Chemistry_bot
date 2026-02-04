@@ -10,7 +10,7 @@ const app = express();
 app.use(
   cors({
     origin: [
-      "https://chemibot.netlify.app", // frontend
+      "https://chemicalbot.netlify.app", // frontend
       "http://localhost:5173"         // local dev
     ],
     methods: ["GET", "POST"],
