@@ -1,9 +1,9 @@
 import os
 from pymongo import MongoClient
 
-MONGO_URI = os.getenv("MONGO_URI")
+MONGODB_URL = os.getenv("MONGODB_URL")
 
-client = MongoClient(MONGO_URI)
+client = MongoClient(MONGODB_URL)
 db = client["chem_ai"]
 
 users_col = db["users"]
