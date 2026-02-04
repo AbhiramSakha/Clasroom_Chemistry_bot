@@ -4,20 +4,20 @@ from pydantic import BaseModel
 from datetime import datetime
 import os
 
+# =========================================================
+# APP
+# =========================================================
 app = FastAPI(title="Classroom Chemistry Bot")
 
 # =========================================================
-# CORS (IMPORTANT: production-safe configuration)
+# CORS (NETLIFY + LOCALHOST SAFE)
 # =========================================================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://chemibot.netlify.app",
-        "http://localhost:5173",
-    ],
-    allow_credentials=False,   # <-- DO NOT set True unless using cookies
+    allow_origin_regex=r"https://.*\.netlify\.app|http://localhost:5173",
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=False,
 )
 
 # =========================================================
@@ -34,7 +34,7 @@ tokenizer = None
 history_col = None
 
 # =========================================================
-# LOAD MODEL (lazy, safe for Railway)
+# LOAD MODEL (LAZY)
 # =========================================================
 def load_model():
     global model, tokenizer
@@ -70,21 +70,21 @@ def load_db():
         history_col = db["history"]
 
 # =========================================================
-# ROOT (prevents 404 spam)
+# ROOT
 # =========================================================
 @app.get("/")
 def root():
-    return {"message": "Classroom Chemistry Bot API is running"}
+    return {"message": "Classroom Chemistry Bot API running"}
 
 # =========================================================
-# HEALTH CHECK
+# HEALTH
 # =========================================================
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
 # =========================================================
-# WARMUP (Railway-only, NOT for frontend)
+# WARMUP (SERVER ONLY)
 # =========================================================
 @app.post("/warmup")
 def warmup(request: Request):
@@ -111,7 +111,7 @@ def predict(q: Query):
     inputs = tokenizer(
         q.text,
         return_tensors="pt",
-        truncation=True
+        truncation=True,
     )
 
     with torch.no_grad():
@@ -125,7 +125,7 @@ def predict(q: Query):
     answer = tokenizer.decode(
         outputs[0],
         skip_special_tokens=True,
-        clean_up_tokenization_spaces=True,  # fixes warning
+        clean_up_tokenization_spaces=True,
     )
 
     history_col.insert_one({
