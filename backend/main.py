@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime
@@ -57,18 +57,34 @@ def load_db():
         db = client["chem_ai"]
         history_col = db["history"]
 
+# ---------- ROOT ----------
+@app.get("/")
+def root():
+    return {"message": "Classroom Chemistry Bot API is running"}
+
 # ---------- HEALTH ----------
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
-# ---------- PREDICT (POST ONLY) ----------
+# ---------- WARMUP ----------
+@app.post("/warmup")
+def warmup():
+    """
+    Called automatically by hosting providers to keep the container warm.
+    """
+    load_model()
+    load_db()
+    return {"status": "warmed"}
+
+# ---------- PREDICT ----------
 @app.post("/predict")
 def predict(q: Query):
     load_model()
     load_db()
 
     import torch
+
     inputs = tokenizer(q.text, return_tensors="pt", truncation=True)
 
     with torch.no_grad():
@@ -79,7 +95,11 @@ def predict(q: Query):
             no_repeat_ngram_size=3
         )
 
-    answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    answer = tokenizer.decode(
+        outputs[0],
+        skip_special_tokens=True,
+        clean_up_tokenization_spaces=True  # fixes warning
+    )
 
     history_col.insert_one({
         "input": q.text,
