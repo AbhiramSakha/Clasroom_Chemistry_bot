@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime
@@ -6,30 +6,39 @@ import os
 
 app = FastAPI(title="Classroom Chemistry Bot")
 
-# ---------- CORS ----------
+# =========================================================
+# CORS (IMPORTANT: production-safe configuration)
+# =========================================================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://chemibot.netlify.app",
-        "http://localhost:5173"
+        "http://localhost:5173",
     ],
-    allow_credentials=True,
+    allow_credentials=False,   # <-- DO NOT set True unless using cookies
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ---------- MODELS ----------
+# =========================================================
+# MODELS
+# =========================================================
 class Query(BaseModel):
     text: str
 
-# ---------- GLOBALS ----------
+# =========================================================
+# GLOBALS
+# =========================================================
 model = None
 tokenizer = None
 history_col = None
 
-# ---------- LOAD MODEL ----------
+# =========================================================
+# LOAD MODEL (lazy, safe for Railway)
+# =========================================================
 def load_model():
     global model, tokenizer
+
     if model is None:
         import torch
         from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
@@ -39,13 +48,16 @@ def load_model():
         ADAPTER_PATH = "MyFinetunedModel"
 
         tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
-        base = AutoModelForSeq2SeqLM.from_pretrained(BASE_MODEL)
-        model = PeftModel.from_pretrained(base, ADAPTER_PATH)
+        base_model = AutoModelForSeq2SeqLM.from_pretrained(BASE_MODEL)
+        model = PeftModel.from_pretrained(base_model, ADAPTER_PATH)
         model.eval()
 
-# ---------- LOAD DB ----------
+# =========================================================
+# LOAD DATABASE
+# =========================================================
 def load_db():
     global history_col
+
     if history_col is None:
         from pymongo import MongoClient
 
@@ -57,27 +69,38 @@ def load_db():
         db = client["chem_ai"]
         history_col = db["history"]
 
-# ---------- ROOT ----------
+# =========================================================
+# ROOT (prevents 404 spam)
+# =========================================================
 @app.get("/")
 def root():
     return {"message": "Classroom Chemistry Bot API is running"}
 
-# ---------- HEALTH ----------
+# =========================================================
+# HEALTH CHECK
+# =========================================================
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
-# ---------- WARMUP ----------
+# =========================================================
+# WARMUP (Railway-only, NOT for frontend)
+# =========================================================
 @app.post("/warmup")
-def warmup():
-    """
-    Called automatically by hosting providers to keep the container warm.
-    """
+def warmup(request: Request):
+    user_agent = request.headers.get("user-agent", "").lower()
+
+    # Ignore browser calls
+    if "mozilla" in user_agent:
+        return {"status": "ignored"}
+
     load_model()
     load_db()
     return {"status": "warmed"}
 
-# ---------- PREDICT ----------
+# =========================================================
+# PREDICT
+# =========================================================
 @app.post("/predict")
 def predict(q: Query):
     load_model()
@@ -85,33 +108,46 @@ def predict(q: Query):
 
     import torch
 
-    inputs = tokenizer(q.text, return_tensors="pt", truncation=True)
+    inputs = tokenizer(
+        q.text,
+        return_tensors="pt",
+        truncation=True
+    )
 
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
             max_length=128,
             repetition_penalty=1.3,
-            no_repeat_ngram_size=3
+            no_repeat_ngram_size=3,
         )
 
     answer = tokenizer.decode(
         outputs[0],
         skip_special_tokens=True,
-        clean_up_tokenization_spaces=True  # fixes warning
+        clean_up_tokenization_spaces=True,  # fixes warning
     )
 
     history_col.insert_one({
         "input": q.text,
         "output": answer,
-        "time": datetime.utcnow()
+        "time": datetime.utcnow(),
     })
 
     return {"output": answer}
 
-# ---------- HISTORY ----------
+# =========================================================
+# HISTORY
+# =========================================================
 @app.get("/history")
 def history():
     load_db()
-    data = list(history_col.find().sort("time", -1).limit(10))
-    return [{"input": d["input"], "output": d["output"]} for d in data]
+
+    data = list(
+        history_col
+        .find({}, {"_id": 0})
+        .sort("time", -1)
+        .limit(10)
+    )
+
+    return data
