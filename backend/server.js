@@ -7,7 +7,18 @@ const User = require("./models/User");
 const app = express();
 
 /* ================= MIDDLEWARE ================= */
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "https://chemibot.netlify.app", // frontend
+      "http://localhost:5173"         // local dev
+    ],
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"],
+    credentials: false
+  })
+);
+
 app.use(express.json());
 
 /* ================= ENV VARIABLES ================= */
@@ -21,24 +32,25 @@ if (!MONGODB_URI) {
 
 /* ================= MONGODB CONNECTION ================= */
 mongoose
-  .connect(MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  })
+  .connect(MONGODB_URI)
   .then(() => console.log("✅ MongoDB Connected"))
   .catch((err) => {
     console.error("❌ MongoDB Connection Error:", err);
     process.exit(1);
   });
 
-/* ================= HEALTH CHECK ================= */
+/* ================= ROOT / HEALTH ================= */
 app.get("/", (req, res) => {
   res.json({ status: "Auth API running" });
 });
 
-/* ================= SIGNUP API ================= */
+/* ================= SIGNUP ================= */
 app.post("/api/signup", async (req, res) => {
   const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email and password required" });
+  }
 
   try {
     const exists = await User.findOne({ email });
@@ -51,14 +63,18 @@ app.post("/api/signup", async (req, res) => {
 
     res.status(201).json({ message: "Signup successful" });
   } catch (err) {
-    console.error(err);
+    console.error("❌ Signup error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-/* ================= LOGIN API ================= */
+/* ================= LOGIN ================= */
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email and password required" });
+  }
 
   try {
     const user = await User.findOne({ email });
@@ -72,12 +88,12 @@ app.post("/api/login", async (req, res) => {
 
     res.json({ message: "Login successful" });
   } catch (err) {
-    console.error(err);
+    console.error("❌ Login error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
 /* ================= START SERVER ================= */
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🚀 Auth server running on port ${PORT}`);
 });
