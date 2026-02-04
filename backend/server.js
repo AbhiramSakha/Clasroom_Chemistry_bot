@@ -22,11 +22,11 @@ app.use(
 app.use(express.json());
 
 /* ================= ENV VARIABLES ================= */
-const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_URI = process.env.MONGODB_URL;
 const PORT = process.env.PORT || 5000;
 
 if (!MONGODB_URI) {
-  console.error("❌ MONGODB_URI not set in environment variables");
+  console.error("❌ MONGODB_URL not set in environment variables");
   process.exit(1);
 }
 
