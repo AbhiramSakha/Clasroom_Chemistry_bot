@@ -1,17 +1,15 @@
-// Use environment variable (Netlify / Vite)
+// ================= BASE URL =================
+// Netlify env var:
+// VITE_API_BASE_URL=https://clasroomchemistrybot-production.up.railway.app
 const BASE = import.meta.env.VITE_API_BASE_URL;
 
-/* ================= AUTH HEADERS ================= */
-const authHeaders = () => ({
-  "Content-Type": "application/json",
-  Authorization: `Bearer ${localStorage.getItem("token") || ""}`
-});
-
-/* ================= LOGIN ================= */
+// ================= AUTH API (EXPRESS) =================
 export async function login(email, password) {
-  const res = await fetch(`${BASE}/login`, {
+  const res = await fetch(`${BASE}/api/login`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json"
+    },
     body: JSON.stringify({ email, password })
   });
 
@@ -19,11 +17,12 @@ export async function login(email, password) {
   return res.json();
 }
 
-/* ================= SIGNUP ================= */
 export async function signup(email, password) {
-  const res = await fetch(`${BASE}/signup`, {
+  const res = await fetch(`${BASE}/api/signup`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json"
+    },
     body: JSON.stringify({ email, password })
   });
 
@@ -31,11 +30,13 @@ export async function signup(email, password) {
   return res.json();
 }
 
-/* ================= ASK MODEL ================= */
+// ================= AI API (FASTAPI) =================
 export async function askModel(text) {
   const res = await fetch(`${BASE}/predict`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: {
+      "Content-Type": "application/json"
+    },
     body: JSON.stringify({ text })
   });
 
@@ -43,11 +44,8 @@ export async function askModel(text) {
   return res.json();
 }
 
-/* ================= HISTORY ================= */
 export async function getHistory() {
-  const res = await fetch(`${BASE}/history`, {
-    headers: authHeaders()
-  });
+  const res = await fetch(`${BASE}/history`);
 
   if (!res.ok) throw new Error("History fetch failed");
   return res.json();
