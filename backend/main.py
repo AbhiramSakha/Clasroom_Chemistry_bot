@@ -3,15 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime
 import os
+import traceback
 
-# ================= APP =================
 app = FastAPI(title="Classroom Chemistry Bot")
 
 # ================= CORS =================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://chemicalbot.netlify.app",
+        "https://chemibot.netlify.app",
         "http://localhost:5173"
     ],
     allow_credentials=True,
@@ -19,7 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ================= REQUEST MODEL =================
+# ================= MODELS =================
 class Query(BaseModel):
     text: str
 
@@ -28,23 +28,23 @@ _model = None
 _tokenizer = None
 _history_col = None
 
-# ================= LOAD MODEL (LAZY) =================
+# ================= LOAD MODEL =================
 def load_model():
     global _model, _tokenizer
     if _model is None:
-        import torch
         from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
         from peft import PeftModel
+        import torch
 
         BASE_MODEL = "google/flan-t5-base"
         ADAPTER_PATH = "MyFinetunedModel"
 
         _tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
-        base_model = AutoModelForSeq2SeqLM.from_pretrained(BASE_MODEL)
-        _model = PeftModel.from_pretrained(base_model, ADAPTER_PATH)
+        base = AutoModelForSeq2SeqLM.from_pretrained(BASE_MODEL)
+        _model = PeftModel.from_pretrained(base, ADAPTER_PATH)
         _model.eval()
 
-# ================= LOAD DATABASE (.env) =================
+# ================= LOAD DB =================
 def load_db():
     global _history_col
     if _history_col is None:
@@ -52,25 +52,37 @@ def load_db():
 
         mongo_url = os.getenv("MONGODB_URL")
         if not mongo_url:
-            raise RuntimeError("MONGODB_URL not set")
+            raise RuntimeError("MONGODB_URL is not set")
 
         client = MongoClient(mongo_url)
         db = client["chem_ai"]
         _history_col = db["history"]
+
+# ================= ROOT (FIXES 404 CONFUSION) =================
+@app.get("/")
+def root():
+    return {
+        "message": "Classroom Chemistry Bot API is running",
+        "endpoints": ["/health", "/predict", "/history"]
+    }
 
 # ================= HEALTH =================
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
-# ================= PREDICT (POST ONLY) =================
+# ================= PREDICT =================
 @app.post("/predict")
 def predict(q: Query):
     try:
+        if not q.text.strip():
+            raise HTTPException(status_code=400, detail="Text cannot be empty")
+
         load_model()
         load_db()
 
         import torch
+
         inputs = _tokenizer(q.text, return_tensors="pt", truncation=True)
 
         with torch.no_grad():
@@ -91,8 +103,12 @@ def predict(q: Query):
 
         return {"output": answer}
 
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print("❌ Predict error:")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal model error")
 
 # ================= HISTORY =================
 @app.get("/history")
