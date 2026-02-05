@@ -1,45 +1,37 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime
 import os
 
-# =========================================================
-# APP
-# =========================================================
+# ================= APP =================
 app = FastAPI(title="Classroom Chemistry Bot")
 
-# =========================================================
-# CORS (NETLIFY + LOCALHOST SAFE)
-# =========================================================
+# ================= CORS =================
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"https://.*\.netlify\.app|http://localhost:5173",
+    allow_origins=[
+        "https://chemicalbot.netlify.app",
+        "http://localhost:5173"
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    allow_credentials=False,
 )
 
-# =========================================================
-# MODELS
-# =========================================================
+# ================= REQUEST MODEL =================
 class Query(BaseModel):
     text: str
 
-# =========================================================
-# GLOBALS
-# =========================================================
-model = None
-tokenizer = None
-history_col = None
+# ================= GLOBALS =================
+_model = None
+_tokenizer = None
+_history_col = None
 
-# =========================================================
-# LOAD MODEL (LAZY)
-# =========================================================
+# ================= LOAD MODEL (LAZY) =================
 def load_model():
-    global model, tokenizer
-
-    if model is None:
+    global _model, _tokenizer
+    if _model is None:
         import torch
         from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
         from peft import PeftModel
@@ -47,18 +39,15 @@ def load_model():
         BASE_MODEL = "google/flan-t5-base"
         ADAPTER_PATH = "MyFinetunedModel"
 
-        tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
+        _tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
         base_model = AutoModelForSeq2SeqLM.from_pretrained(BASE_MODEL)
-        model = PeftModel.from_pretrained(base_model, ADAPTER_PATH)
-        model.eval()
+        _model = PeftModel.from_pretrained(base_model, ADAPTER_PATH)
+        _model.eval()
 
-# =========================================================
-# LOAD DATABASE
-# =========================================================
+# ================= LOAD DATABASE (.env) =================
 def load_db():
-    global history_col
-
-    if history_col is None:
+    global _history_col
+    if _history_col is None:
         from pymongo import MongoClient
 
         mongo_url = os.getenv("MONGODB_URL")
@@ -67,87 +56,50 @@ def load_db():
 
         client = MongoClient(mongo_url)
         db = client["chem_ai"]
-        history_col = db["history"]
+        _history_col = db["history"]
 
-# =========================================================
-# ROOT
-# =========================================================
-@app.get("/")
-def root():
-    return {"message": "Classroom Chemistry Bot API running"}
-
-# =========================================================
-# HEALTH
-# =========================================================
+# ================= HEALTH =================
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
-# =========================================================
-# WARMUP (SERVER ONLY)
-# =========================================================
-@app.post("/warmup")
-def warmup(request: Request):
-    user_agent = request.headers.get("user-agent", "").lower()
-
-    # Ignore browser calls
-    if "mozilla" in user_agent:
-        return {"status": "ignored"}
-
-    load_model()
-    load_db()
-    return {"status": "warmed"}
-
-# =========================================================
-# PREDICT
-# =========================================================
+# ================= PREDICT (POST ONLY) =================
 @app.post("/predict")
 def predict(q: Query):
-    load_model()
-    load_db()
+    try:
+        load_model()
+        load_db()
 
-    import torch
+        import torch
+        inputs = _tokenizer(q.text, return_tensors="pt", truncation=True)
 
-    inputs = tokenizer(
-        q.text,
-        return_tensors="pt",
-        truncation=True,
-    )
+        with torch.no_grad():
+            outputs = _model.generate(
+                **inputs,
+                max_length=128,
+                repetition_penalty=1.3,
+                no_repeat_ngram_size=3
+            )
 
-    with torch.no_grad():
-        outputs = model.generate(
-            **inputs,
-            max_length=128,
-            repetition_penalty=1.3,
-            no_repeat_ngram_size=3,
-        )
+        answer = _tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-    answer = tokenizer.decode(
-        outputs[0],
-        skip_special_tokens=True,
-        clean_up_tokenization_spaces=True,
-    )
+        _history_col.insert_one({
+            "input": q.text,
+            "output": answer,
+            "time": datetime.utcnow()
+        })
 
-    history_col.insert_one({
-        "input": q.text,
-        "output": answer,
-        "time": datetime.utcnow(),
-    })
+        return {"output": answer}
 
-    return {"output": answer}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-# =========================================================
-# HISTORY
-# =========================================================
+# ================= HISTORY =================
 @app.get("/history")
 def history():
-    load_db()
-
-    data = list(
-        history_col
-        .find({}, {"_id": 0})
-        .sort("time", -1)
-        .limit(10)
-    )
-
-    return data
+    try:
+        load_db()
+        data = list(_history_col.find().sort("time", -1).limit(10))
+        return [{"input": d["input"], "output": d["output"]} for d in data]
+    except Exception:
+        return []
