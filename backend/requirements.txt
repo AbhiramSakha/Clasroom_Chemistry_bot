@@ -1,3 +1,4 @@
+# ---------------- Core API ----------------
 fastapi
 uvicorn
 pymongo
@@ -8,12 +9,12 @@ werkzeug
 requests
 numpy
 
-# CPU-only PyTorch (Python 3.10 compatible)
-torch==2.5.1+cpu
-torchvision==0.20.1+cpu
-torchaudio==2.5.1+cpu
---extra-index-url https://download.pytorch.org/whl/cpu
+# ---------------- PyTorch (CPU, Python 3.10 compatible) ----------------
+torch==2.5.1
+torchvision==0.20.1
+torchaudio==2.5.1
 
+# ---------------- NLP / LLM ----------------
 transformers==4.44.2
 peft==0.7.1
 sentencepiece
