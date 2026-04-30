@@ -6,6 +6,7 @@ passlib[bcrypt]
 python-multipart
 transformers
 torch
+rdkit
 peft
 werkzeug
 wikipedia
