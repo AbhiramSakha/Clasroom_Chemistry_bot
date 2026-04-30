@@ -1,0 +1,6 @@
+google_flan-t5-small/
+*.safetensors
+*.bin
+node_modules/
+__pycache__/
+.env
