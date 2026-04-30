@@ -44,7 +44,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://chemicalbot.netlify.app"],
+    allow_origins=["https://classroomchemistrybot.netlify.app"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
