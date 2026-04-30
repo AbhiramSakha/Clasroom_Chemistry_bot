@@ -2,18 +2,21 @@
 KIET University · JNTU Kakinada
 --------------------------------------
 v4.0 Changes:
-  • generate_quiz() — massively expanded QUIZ_BANK with 10+ categories × 8 questions each
-  • detect_quiz_topic() — smarter keyword matching, supports multi-word phrases
-  • format_quiz_as_text() — clean JSON embedding format that frontend can parse
-  • format_pointwise_answer() — guaranteed structured numbered output with headers
-  • build_structured_prompt() — cleaner prompt that forces pointwise AI output
+  • generate_quiz()          — massively expanded QUIZ_BANK (10 categories × 8 questions)
+  • detect_quiz_topic()      — smarter keyword matching, supports multi-word phrases
+  • format_quiz_as_text()    — clean JSON embedding format that frontend can parse
+  • format_pointwise_answer()— guaranteed structured numbered output with headers
+  • build_structured_prompt()— cleaner prompt that forces pointwise AI output
   • All v3.0 fixes preserved
+  • NEW v4.0: LoRA adapter auto-downloaded from Google Drive at startup
+              (solves the "model folder missing from GitHub repo" problem)
 """
 
 import torch
 import re
 import json
 import random
+import os
 import wikipedia
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from peft import PeftModel
@@ -22,12 +25,95 @@ from googletrans import Translator
 from rdkit import Chem
 from rdkit.Chem import Draw
 
+# ══════════════════════════════════════════════════════════════════
+#  GOOGLE DRIVE — MODEL DOWNLOAD CONFIGURATION
+#
+#  ↓↓  ONLY CHANGE THIS ONE LINE IF YOUR DRIVE LINK CHANGES  ↓↓
+# ══════════════════════════════════════════════════════════════════
+
+DRIVE_FOLDER_URL = "https://drive.google.com/drive/folders/1d-JBh6k-ArhK1ltgs-lwuAcO8G-kvVum?usp=sharing"
+
+# ══════════════════════════════════════════════════════════════════
+#  Everything below is auto-configured — do not change
+# ══════════════════════════════════════════════════════════════════
+
+DRIVE_FOLDER_ID = DRIVE_FOLDER_URL.split("/folders/")[1].split("?")[0]
+ADAPTER_PATH    = "MyFinetunedModel"   # local folder where adapter files will be saved
+BASE_MODEL      = "google/flan-t5-base"
+
+
+# ──────────────────────────────────────────────────────────────────
+#  AUTO-DOWNLOADER
+#  Runs once at startup; skipped automatically if folder already exists.
+#
+#  REQUIREMENT: Your Google Drive folder MUST be shared as:
+#    "Anyone with the link" → Viewer
+#  Otherwise the download will fail with a permissions error.
+# ──────────────────────────────────────────────────────────────────
+
+def download_adapter_from_drive():
+    """
+    Download the LoRA adapter from Google Drive using gdown.
+    Skipped if MyFinetunedModel/ already exists and is non-empty.
+    Install gdown once with:  pip install gdown
+    """
+    # ── Already downloaded? Skip. ──────────────────────────────────
+    if os.path.isdir(ADAPTER_PATH) and len(os.listdir(ADAPTER_PATH)) > 0:
+        print(f"[ChemAI] '{ADAPTER_PATH}/' already exists locally — skipping Drive download.")
+        return
+
+    print("[ChemAI] LoRA adapter not found locally.")
+    print(f"[ChemAI] Downloading from Google Drive (folder ID: {DRIVE_FOLDER_ID}) ...")
+
+    # ── Ensure gdown is installed ──────────────────────────────────
+    try:
+        import gdown
+    except ImportError:
+        raise ImportError(
+            "\n[ChemAI ERROR] 'gdown' is not installed.\n"
+            "Fix it by running:  pip install gdown\n"
+            "Then restart the application.\n"
+        )
+
+    os.makedirs(ADAPTER_PATH, exist_ok=True)
+
+    # ── Download entire public Drive folder ───────────────────────
+    try:
+        gdown.download_folder(
+            id=DRIVE_FOLDER_ID,
+            output=ADAPTER_PATH,
+            quiet=False,
+            use_cookies=False,
+        )
+    except Exception as e:
+        raise RuntimeError(
+            f"\n[ChemAI ERROR] Google Drive download failed.\n"
+            f"Reason: {e}\n\n"
+            f"Checklist:\n"
+            f"  1. Go to your Drive folder → Share → 'Anyone with the link' (Viewer)\n"
+            f"  2. Check your internet connection\n"
+            f"  3. Update gdown:  pip install -U gdown\n"
+        )
+
+    # ── Verify download ───────────────────────────────────────────
+    downloaded_files = os.listdir(ADAPTER_PATH)
+    if not downloaded_files:
+        raise RuntimeError(
+            "[ChemAI ERROR] Download finished but the folder is EMPTY.\n"
+            "Make sure your Drive folder contains the adapter files and is publicly shared.\n"
+        )
+
+    print(f"[ChemAI] Download complete! {len(downloaded_files)} file(s) saved to '{ADAPTER_PATH}/':")
+    for f in downloaded_files:
+        size_mb = os.path.getsize(os.path.join(ADAPTER_PATH, f)) / (1024 * 1024)
+        print(f"         • {f}  ({size_mb:.2f} MB)")
+
+
 # ══════════════════════════════════════════════
-# MODEL CONFIGURATION
+# MODEL LOADING
 # ══════════════════════════════════════════════
 
-BASE_MODEL   = "google/flan-t5-base"
-ADAPTER_PATH = "MyFinetunedModel"
+download_adapter_from_drive()   # ← downloads from Drive if not already local
 
 print("[ChemAI] Loading FLAN-T5 base model...")
 tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
@@ -38,7 +124,7 @@ base_model = AutoModelForSeq2SeqLM.from_pretrained(
     device_map="cpu"
 )
 
-print("[ChemAI] Loading LoRA adapter...")
+print("[ChemAI] Loading LoRA adapter from local folder...")
 model = PeftModel.from_pretrained(
     base_model,
     ADAPTER_PATH,
@@ -46,7 +132,7 @@ model = PeftModel.from_pretrained(
 )
 
 model.eval()
-print("[ChemAI] Model loaded successfully on CPU.")
+print("[ChemAI] Model ready on CPU.")
 
 translator = Translator()
 
@@ -1037,11 +1123,6 @@ def generate_structure_image(compound_name):
 # ══════════════════════════════════════════════
 
 def detect_quiz_topic(topic_text):
-    """
-    Detect quiz bank category from topic string.
-    Uses weighted keyword matching — returns best-matching category.
-    Falls back to 'default' if no good match found.
-    """
     t = topic_text.lower().strip()
 
     topic_map = {
@@ -1099,19 +1180,16 @@ def detect_quiz_topic(topic_text):
         ],
     }
 
-    # Count keyword matches per category with word-boundary awareness
     scores = {}
     for category, keywords in topic_map.items():
         score = 0
         for kw in keywords:
             if kw in t:
-                # Multi-word phrases score higher
                 score += (2 if " " in kw else 1)
         scores[category] = score
 
     best_category = max(scores, key=scores.get)
 
-    # Only use the detected category if it has at least 1 match
     if scores[best_category] == 0:
         return "default"
 
@@ -1119,65 +1197,37 @@ def detect_quiz_topic(topic_text):
 
 
 # ══════════════════════════════════════════════
-# v4.0 — QUIZ GENERATOR (COMPLETELY REWRITTEN)
+# v4.0 — QUIZ GENERATOR
 # ══════════════════════════════════════════════
 
 def generate_quiz(topic, num_questions=5):
-    """
-    Generate a realistic MCQ quiz.
-
-    Returns JSON-serialisable list:
-    [
-      {
-        "question_number": 1,
-        "question": "...",
-        "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
-        "answer": "B",
-        "explanation": "..."
-      }, ...
-    ]
-    """
-    # Clamp to sensible range
     num_questions = max(1, min(num_questions, 10))
 
-    # Detect primary category
     category = detect_quiz_topic(topic)
     pool     = list(QUIZ_BANK.get(category, []))
 
-    # Also try a secondary category if pool is small
     if len(pool) < num_questions:
-        # Try closest related category for top-up
         secondary_map = {
-            "acid": "base",
-            "base": "acid",
-            "oxidation": "reaction",
-            "organic": "bonding",
-            "periodic": "bonding",
-            "equilibrium": "thermodynamics",
-            "thermodynamics": "equilibrium",
-            "bonding": "organic",
-            "reaction": "oxidation",
+            "acid": "base", "base": "acid", "oxidation": "reaction",
+            "organic": "bonding", "periodic": "bonding",
+            "equilibrium": "thermodynamics", "thermodynamics": "equilibrium",
+            "bonding": "organic", "reaction": "oxidation",
             "electrochemistry": "oxidation",
         }
         secondary = secondary_map.get(category, "default")
-        secondary_pool = list(QUIZ_BANK.get(secondary, []))
-        pool = pool + secondary_pool
+        pool = pool + list(QUIZ_BANK.get(secondary, []))
 
     default_pool = list(QUIZ_BANK["default"])
-
-    # Shuffle for variety every call
     random.shuffle(pool)
     random.shuffle(default_pool)
 
-    # Select up to num_questions, no duplicates
-    selected  = pool[:num_questions]
+    selected = pool[:num_questions]
     if len(selected) < num_questions:
-        needed   = num_questions - len(selected)
-        used_qs  = {q["question"] for q in selected}
-        extras   = [q for q in default_pool if q["question"] not in used_qs]
+        needed  = num_questions - len(selected)
+        used_qs = {q["question"] for q in selected}
+        extras  = [q for q in default_pool if q["question"] not in used_qs]
         selected += extras[:needed]
 
-    # Assign sequential numbers and return
     result = []
     for i, q in enumerate(selected[:num_questions], start=1):
         result.append({
@@ -1187,23 +1237,18 @@ def generate_quiz(topic, num_questions=5):
             "answer":          q["answer"],
             "explanation":     q["explanation"],
         })
-
     return result
 
 
 def format_quiz_as_text(quiz_list, topic=""):
-    """
-    Convert quiz list to clean readable format with:
-    - Numbered questions
-    - Lettered options
-    - Answer + explanation
-    - Embedded JSON block for frontend quiz widget parsing
-    """
     if not quiz_list:
         return "Could not generate quiz questions. Please try again with a different topic."
 
     topic_label = f" — {topic.title()}" if topic else ""
-    lines = [f"## Chemistry Quiz{topic_label}\n", f"**{len(quiz_list)} Questions · Multiple Choice**\n\n---\n"]
+    lines = [
+        f"## Chemistry Quiz{topic_label}\n",
+        f"**{len(quiz_list)} Questions · Multiple Choice**\n\n---\n"
+    ]
 
     for q in quiz_list:
         lines.append(f"### Q{q['question_number']}. {q['question']}\n")
@@ -1213,7 +1258,6 @@ def format_quiz_as_text(quiz_list, topic=""):
         lines.append(f"📖 **Explanation:** {q['explanation']}\n")
         lines.append("---")
 
-    # Embed JSON for frontend interactive quiz widget
     lines.append("\n```json:quiz")
     lines.append(json.dumps(quiz_list, ensure_ascii=False, indent=2))
     lines.append("```")
@@ -1222,59 +1266,35 @@ def format_quiz_as_text(quiz_list, topic=""):
 
 
 # ══════════════════════════════════════════════
-# v4.0 — FORMAT_POINTWISE_ANSWER (REWRITTEN)
-# Guarantees clean step-by-step numbered output
+# v4.0 — FORMAT_POINTWISE_ANSWER
 # ══════════════════════════════════════════════
 
 def format_pointwise_answer(raw_text, question=""):
-    """
-    Post-process AI output to guarantee structured pointwise format.
-
-    Rules:
-    1. If text already has ## headers OR numbered points → clean and return
-    2. If it's a paragraph → split into sentences, build structured output
-    3. Always produces:
-       ## Definition  (1 sentence)
-       ## Key Points  (numbered list)
-       ## Example     (if applicable)
-       ## Key Formula (if formula detected)
-       ## Summary     (1 exam tip sentence)
-    """
     if not raw_text or len(raw_text.strip()) < 10:
         return raw_text
 
     text = raw_text.strip()
 
-    # ── Already structured → clean strip and return ──────────────
-    has_numbers  = bool(re.search(r'^\s*[1-9][\.\)]\s', text, re.MULTILINE))
-    has_headers  = bool(re.search(r'^##\s', text, re.MULTILINE))
+    has_numbers = bool(re.search(r'^\s*[1-9][\.\)]\s', text, re.MULTILINE))
+    has_headers = bool(re.search(r'^##\s', text, re.MULTILINE))
     if has_numbers or has_headers:
-        # Still ensure it has a proper title
         if not text.startswith("#"):
             q_clean = _clean_question(question)
             title   = q_clean[:55] + "..." if len(q_clean) > 55 else q_clean
             text    = f"## {title}\n\n" + text
         return text
 
-    # ── Paragraph → structured conversion ────────────────────────
-    # Split into clean sentences
     sentences = re.split(r'(?<=[.!?])\s+', text)
     sentences = [s.strip() for s in sentences if len(s.strip()) > 12]
 
     if not sentences:
         return text
 
-    # Build title from question
     q_clean = _clean_question(question)
     title   = q_clean[:60] + "..." if len(q_clean) > 60 else q_clean
 
-    out = [f"## {title}\n"]
+    out = [f"## {title}\n", "## Definition\n", sentences[0] + "\n"]
 
-    # ── Section 1: Definition ─────────────────────────────────────
-    out.append("## Definition\n")
-    out.append(sentences[0] + "\n")
-
-    # ── Section 2: Key Points (up to 6 remaining sentences) ──────
     key_sentences = sentences[1:7]
     if key_sentences:
         out.append("## Key Points\n")
@@ -1282,10 +1302,9 @@ def format_pointwise_answer(raw_text, question=""):
             out.append(f"{i}. {s}")
         out.append("")
 
-    # ── Section 3: Formula detection ─────────────────────────────
     formula_patterns = [
-        r'[A-Z][a-z]?\d*(?:[A-Z][a-z]?\d*)+',      # chemical formula like H2SO4
-        r'[A-Za-z\s]+=\s*[A-Za-z0-9\s\+\-\*/\^]+',  # equation like pH = -log[H+]
+        r'[A-Z][a-z]?\d*(?:[A-Z][a-z]?\d*)+',
+        r'[A-Za-z\s]+=\s*[A-Za-z0-9\s\+\-\*/\^]+',
     ]
     formulas_found = []
     for pattern in formula_patterns:
@@ -1297,9 +1316,7 @@ def format_pointwise_answer(raw_text, question=""):
         out.append(formulas_found[0])
         out.append("")
 
-    # ── Section 4: Quick Summary ──────────────────────────────────
     if len(sentences) > 1:
-        # Use last sentence as summary, or first if only one
         summary_sentence = sentences[-1] if len(sentences) > 2 else sentences[0]
         out.append("## Quick Summary\n")
         out.append(f"💡 {summary_sentence}")
@@ -1308,7 +1325,6 @@ def format_pointwise_answer(raw_text, question=""):
 
 
 def _clean_question(question):
-    """Strip IMPORTANT: prefix and prompt boilerplate from question string."""
     q = re.sub(r'^IMPORTANT:[^\n]*\n*', '', question, flags=re.IGNORECASE).strip()
     q = re.sub(r'^(QUESTION|Question):\s*"?', '', q).strip().strip('"')
     q = re.sub(r'^(You are|Provide|Answer|Format):.*?(?=\n|$)', '', q, flags=re.IGNORECASE).strip()
@@ -1350,12 +1366,7 @@ def generate_ai(prompt, max_new_tokens=300):
 # ══════════════════════════════════════════════
 
 def build_structured_prompt(question):
-    """
-    Build a prompt that forces structured pointwise output from FLAN-T5.
-    Cleaner format for better model compliance.
-    """
     q = _clean_question(question)
-
     return f"""You are a chemistry expert tutor. Answer the following question in structured format.
 
 Question: {q}
@@ -1395,13 +1406,9 @@ def analyze_pdf_text(text):
 
     summary_prompt = (
         "Summarize the following chemistry text into numbered study notes:\n"
-        "## Summary\n"
-        "1. (First key fact)\n"
-        "2. (Second key fact)\n"
-        "3. (Third key fact)\n"
+        "## Summary\n1. (First key fact)\n2. (Second key fact)\n3. (Third key fact)\n"
         "Text:\n" + text
     )
-
     video_prompt = (
         "Write a short educational video script with [INTRO], [MAIN CONTENT], "
         "[CONCLUSION] sections for this chemistry topic:\n" + text
@@ -1409,9 +1416,8 @@ def analyze_pdf_text(text):
 
     summary      = generate_ai(summary_prompt)
     video_script = generate_ai(video_prompt)
-
-    quiz_list = generate_quiz(topic=text[:300], num_questions=5)
-    quiz_text = format_quiz_as_text(quiz_list)
+    quiz_list    = generate_quiz(topic=text[:300], num_questions=5)
+    quiz_text    = format_quiz_as_text(quiz_list)
 
     return {
         "summary":      clean_output(summary),
@@ -1425,17 +1431,6 @@ def analyze_pdf_text(text):
 # ══════════════════════════════════════════════
 
 def generate_answer(text, language="en"):
-    """
-    Main entry point — v4.0 priority order:
-    0. QUIZ: prefix     → generate_quiz() (template bank, always reliable)
-    1. IMPORTANT: prefix → bypass shortcuts → structured AI
-    2. Structure request → RDKit image
-    3. Direct element    → periodic table card
-    4. Molar mass        → calculator
-    5. PDF: prefix       → analyze_pdf_text()
-    6. Structured AI     → format_pointwise_answer() post-processor
-    7. Wikipedia fallback if AI output is too short
-    """
     q = text.strip()
     if not q:
         return "Please enter a chemistry question."
@@ -1443,7 +1438,6 @@ def generate_answer(text, language="en"):
     q_lower = q.lower()
 
     # ── 0. QUIZ PREFIX ─────────────────────────────────────────────
-    # Formats: "QUIZ: acid base"  or  "QUIZ:8: organic chemistry"
     if q_lower.startswith("quiz:"):
         raw = q[5:].strip()
         count_match = re.match(r'^(\d+):\s*(.*)', raw)
@@ -1453,14 +1447,13 @@ def generate_answer(text, language="en"):
         else:
             num_q = 5
             topic = raw
-
         quiz_list = generate_quiz(topic=topic, num_questions=num_q)
-        ans       = format_quiz_as_text(quiz_list, topic=topic)
-        ans       = translate_text(ans, language)
+        ans = format_quiz_as_text(quiz_list, topic=topic)
+        ans = translate_text(ans, language)
         save_history(q, ans)
         return ans
 
-    # ── 1. IMPORTANT PREFIX — BYPASS SHORTCUTS ────────────────────
+    # ── 1. IMPORTANT PREFIX ───────────────────────────────────────
     if q_lower.startswith("important:"):
         clean_q = _clean_question(q)
         prompt  = build_structured_prompt(clean_q)
@@ -1487,7 +1480,7 @@ def generate_answer(text, language="en"):
                 save_history(q, ans)
                 return ans
 
-    # ── 3. PERIODIC TABLE (DIRECT QUESTIONS ONLY) ─────────────────
+    # ── 3. PERIODIC TABLE ─────────────────────────────────────────
     periodic = periodic_lookup(q)
     if periodic:
         ans = translate_text(periodic, language)
@@ -1539,9 +1532,7 @@ def generate_answer(text, language="en"):
         if wiki and len(wiki) > 50:
             decoded = wiki
 
-    # Apply pointwise formatter to guarantee structured output
     decoded = format_pointwise_answer(decoded, q)
-
     ans = translate_text(decoded, language)
     save_history(q, ans)
     return ans
