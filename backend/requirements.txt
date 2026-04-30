@@ -8,6 +8,4 @@ transformers
 torch
 peft
 werkzeug
-
-erkzeug
-
+wikipedia
