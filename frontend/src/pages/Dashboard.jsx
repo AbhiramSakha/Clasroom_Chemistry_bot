@@ -7,7 +7,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 /* ══════════════════════════════════════════════════════════════
    API HELPERS
 ══════════════════════════════════════════════════════════════ */
-const API = "http://localhost:8000";
+const API = "https://clasroom-chemistry-bot.onrender.com";
 
 async function apiPredict(text, language = "en") {
   const res = await fetch(`${API}/predict`, {
