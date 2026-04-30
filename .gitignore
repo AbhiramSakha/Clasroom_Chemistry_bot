@@ -1,0 +1,19 @@
+# ML / Models
+*.bin
+*.pt
+*.pth
+*.safetensors
+checkpoint-*
+MyFinetunedModel/
+google_flan-t5-small/
+
+# Python
+__pycache__/
+*.pyc
+
+# Videos
+*.mp4
+
+# Docs
+*.pdf
+*.pptx

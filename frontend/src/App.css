@@ -1,0 +1,29 @@
+.auth-page {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(120deg,#6366f1,#22c55e,#ec4899);
+  background-size: 300% 300%;
+  animation: bg 10s ease infinite;
+}
+
+@keyframes bg {
+  0%{background-position:0%}
+  50%{background-position:100%}
+  100%{background-position:0%}
+}
+
+.auth-card {
+  background:white;
+  padding:30px;
+  border-radius:16px;
+  width:300px;
+}
+
+.rainbow {
+  background: linear-gradient(90deg,#6366f1,#22c55e,#ec4899);
+  background-size:300%;
+  animation: bg 5s infinite;
+  color:white;
+}
