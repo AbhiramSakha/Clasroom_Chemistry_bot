@@ -6,8 +6,8 @@ passlib[bcrypt]
 python-multipart
 transformers
 torch
-rdkit
 peft
 werkzeug
 wikipedia
-googletrans
+googletrans==4.0.0-rc1
+gdown
