@@ -1,4 +1,4 @@
-const BASE = "http://localhost:8000";
+const BASE = "https://clasroom-chemistry-bot.onrender.com";
 
 const authHeaders = () => ({
   "Content-Type": "application/json",
