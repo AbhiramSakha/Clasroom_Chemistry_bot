@@ -1,5 +1,3 @@
-
-<<<<<<< HEAD
 # ⚗️ Chemistry AI Assistant
 **KIET University · JNTU Kakinada Affiliated**
 B.Tech / B.Sc Chemistry AI Platform — Academic Project
