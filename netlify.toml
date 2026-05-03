@@ -1,6 +1,6 @@
 [build]
   base = "frontend"
-  command = "npm install && npx vite build"
+  command = "rm -rf node_modules package-lock.json && npm install && npm run build"
   publish = "dist"
 
 [build.environment]
