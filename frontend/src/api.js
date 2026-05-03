@@ -1,4 +1,4 @@
-const BASE = "https://clasroom-chemistry-bot.onrender.com";
+const BASE = "https://abhi9716-chemistry-backend.hf.space";
 
 const authHeaders = () => ({
   "Content-Type": "application/json",
